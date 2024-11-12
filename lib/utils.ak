@@ -40,8 +40,8 @@ pub fn output_value_condition_cancel(
   input_utxo: Input,
   datum: CFDatum,
 ) {
-  let token: (ByteArray, Int) = find_token_details(tx.mint, input_utxo)
   let output = find_output_with_datum(tx.outputs, datum)
+  let token: (ByteArray, Int) = find_token_details(tx.mint, input_utxo)
   expect token.2nd < 0
   assets.lovelace_of(output.value) == assets.lovelace_of(
     input_utxo.output.value,

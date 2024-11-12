@@ -1,7 +1,9 @@
 use aiken/collection/dict
 use aiken/collection/list
 use cardano/assets.{PolicyId}
-use cardano/transaction.{OutputReference, Transaction, find_input}
+use cardano/transaction.{
+  InlineDatum, OutputReference, Transaction, find_input, find_script_outputs,
+}
 use minter
 use types.{CFDatum, Redeemer}
 use utils
@@ -54,14 +56,17 @@ validator crowdfunding {
       mint
         |> assets.tokens(policy_id)
         |> dict.to_pairs()
-
+    expect [ref_token_utxo] = find_script_outputs(outputs, policy_id)
+    expect InlineDatum(datum) = ref_token_utxo.datum
     when redeemer is {
-      0 ->
-        minter.check_mint_amount(outputs, amount) && minter.check_mint_tokenname(
-          inputs,
-          asset_name,
-        )
-      1 -> todo @"burn"
+      0 -> and {
+          minter.check_mint_amount(inputs, ref_token_utxo, amount),
+          minter.check_tokenname(inputs, asset_name),
+        }
+      1 -> and {
+          minter.check_burn_amount(inputs, ref_token_utxo, amount),
+          minter.check_tokenname(inputs, asset_name),
+        }
       _ -> fail
     }
   }
