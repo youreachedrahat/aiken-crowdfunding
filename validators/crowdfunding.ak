@@ -2,7 +2,7 @@ use aiken/collection/dict
 use aiken/collection/list
 use cardano/assets.{PolicyId}
 use cardano/transaction.{
-  InlineDatum, OutputReference, Transaction, find_input, find_script_outputs,
+  OutputReference, Transaction, find_input, find_script_outputs,
 }
 use minter
 use types.{CFDatum, Redeemer}
@@ -45,7 +45,6 @@ validator crowdfunding {
           list.has(tx.extra_signatories, datum.creator),
           utils.datum_updated(tx.outputs, datum),
         }
-      // 4 -> uxto clutter remove (remove the utxo that has no datum no value but are ) cond^ to check incorrect datum or no Datum
       _ -> fail
     }
   }
@@ -57,7 +56,6 @@ validator crowdfunding {
         |> assets.tokens(policy_id)
         |> dict.to_pairs()
     expect [ref_token_utxo] = find_script_outputs(outputs, policy_id)
-    expect InlineDatum(datum) = ref_token_utxo.datum
     when redeemer is {
       0 -> and {
           minter.check_mint_amount(inputs, ref_token_utxo, amount),
@@ -73,5 +71,6 @@ validator crowdfunding {
 
   else(_) {
     fail
+    // uxto clutter remove (remove the utxo that has no datum no value but are ) cond^ to check incorrect datum or no Datum
   }
 }
