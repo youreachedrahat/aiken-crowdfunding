@@ -10,39 +10,43 @@ use cardano/transaction.{
 }
 use types.{CFDatum}
 
-/// utxo_count_1 accepts input and checks if only 1 campaign is being updated
-pub fn utxo_count_1(inputs: List<Input>, datum: CFDatum) {
-  let counter =
-    list.count(
-      inputs,
-      fn(input) -> Bool {
-        when input.output.datum is {
-          InlineDatum(input_datum_data) -> {
-            expect input_datum: CFDatum = input_datum_data
-            input_datum.campaign_id == datum.campaign_id
-          }
-          _ -> fail
-        }
-      },
-    )
-  counter == 1
+pub fn datum_must_not_change(
+  tx: Transaction,
+  datum: CFDatum,
+  input_utxo: Input,
+) -> Bool {
+  let pair_datum: (DataHash, Data) = complete_datum(datum, tx.datums)
+  must_have_same_datum_and_address(
+    pair_datum,
+    tx.outputs,
+    input_utxo.output.address,
+  )
 }
 
-pub fn output_value_and_address_condition(
+pub fn output_value_condition_pledge(
   tx: Transaction,
-  oref: OutputReference,
+  input_utxo: Input,
   datum: CFDatum,
 ) {
-  expect Some(utxo) = find_input(tx.inputs, oref)
   let output = find_output_with_datum(tx.outputs, datum)
-  and {
-    output_value_must_be_more(utxo, output),
-    deposit_and_output_address_must_be_same(utxo, output),
-  }
+  let token: (ByteArray, Int) = find_token_details(tx.mint, input_utxo)
+  assets.lovelace_of(output.value) == assets.lovelace_of(
+    input_utxo.output.value,
+  ) + token.2nd * 1_000_000
 }
 
-pub fn output_value_must_be_more(input: Input, output: Output) {
-  assets.lovelace_of(input.output.value) >= assets.lovelace_of(output.value)
+pub fn output_value_condition_cancel(
+  tx: Transaction,
+  input_utxo: Input,
+  datum: CFDatum,
+) {
+  let token: (ByteArray, Int) = find_token_details(tx.mint, input_utxo)
+  let output = find_output_with_datum(tx.outputs, datum)
+  expect token.2nd < 0
+  assets.lovelace_of(output.value) == assets.lovelace_of(
+    input_utxo.output.value,
+  ) + token.2nd * 1_000_000
+  //token amount to lovelace (token.2nd * 1_000_000)
 }
 
 pub fn must_be_before_deadline(range: ValidityRange, deadline: Int) -> Bool {
@@ -79,18 +83,6 @@ pub fn datum_updated(outputs: List<Output>, datum: CFDatum) {
   counter == 1
 }
 
-pub fn output_value_correctness(
-  tx: Transaction,
-  oref: OutputReference,
-  datum: CFDatum,
-) {
-  expect Some(input) = find_input(tx.inputs, oref)
-  let token: (ByteArray, Int) = find_token_details(tx.mint, input)
-  let output = find_output_with_datum(tx.outputs, datum)
-  assets.lovelace_of(output.value) == assets.lovelace_of(input.output.value) - token.2nd * 1_000_000
-  //token amount to lovelace (token.2nd * 1_000_000)
-}
-
 fn find_token_details(mint: Value, input: Input) -> (ByteArray, Int) {
   expect Script(policy_id) = input.output.address.payment_credential
   expect [Pair(asset_name, amount)] =
@@ -98,20 +90,6 @@ fn find_token_details(mint: Value, input: Input) -> (ByteArray, Int) {
       |> assets.tokens(policy_id)
       |> dict.to_pairs()
   (asset_name, amount)
-}
-
-pub fn datum_must_not_change(
-  tx: Transaction,
-  datum: CFDatum,
-  oref: OutputReference,
-) -> Bool {
-  expect Some(input_utxo) = find_input(tx.inputs, oref)
-  let pair_datum: (DataHash, Data) = complete_datum(datum, tx.datums)
-  must_have_same_datum_and_address(
-    pair_datum,
-    tx.outputs,
-    input_utxo.output.address,
-  )
 }
 
 fn find_output_with_datum(outputs: List<Output>, datum: CFDatum) -> Output {
@@ -132,10 +110,6 @@ fn find_output_with_datum(outputs: List<Output>, datum: CFDatum) -> Output {
       },
     )
   output
-}
-
-fn deposit_and_output_address_must_be_same(input: Input, output: Output) {
-  input.output.address == output.address
 }
 
 fn complete_datum(
@@ -169,3 +143,20 @@ fn must_have_same_datum_and_address(
 
   counter == 1
 }
+// fn utxo_count_1(inputs: List<Input>, datum: CFDatum) {
+//   let counter =
+//     list.count(
+//       inputs,
+//       fn(input) -> Bool {
+//         when input.output.datum is {
+//           InlineDatum(input_datum_data) -> {
+//             expect input_datum: CFDatum = input_datum_data
+//             input_datum.campaign_id == datum.campaign_id
+//           }
+//           NoDatum -> True
+//           _ -> fail
+//         }
+//       },
+//     )
+//   counter == 1
+// }
