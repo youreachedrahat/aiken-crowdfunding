@@ -14,5 +14,4 @@ pub type CFDatum {
   creator: VerificationKeyHash,
   deadline: Int,
   goal: Int,
-  current_funds: Int,
 }
