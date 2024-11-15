@@ -27,13 +27,13 @@ pub fn get_output_with_unchanged_datum(
 }
 
 pub fn output_value_condition_pledge(
-  tx: Transaction,
+  mint: Value,
   input_utxo: Input,
   output_utxo: Output,
 ) {
   //   datum: CFDatum,
   //   let output = find_output_with_datum(tx.outputs, datum)
-  let (_, token_qty): (ByteArray, Int) = find_token_details(tx.mint, input_utxo)
+  let (_, token_qty): (ByteArray, Int) = find_token_details(mint, input_utxo)
   trace @"TokenQty": token_qty
   (assets.lovelace_of(output_utxo.value) == assets.lovelace_of(
     input_utxo.output.value,
@@ -41,16 +41,16 @@ pub fn output_value_condition_pledge(
 }
 
 pub fn output_value_condition_cancel(
-  tx: Transaction,
+  mint: Value,
   input_utxo: Input,
-  datum: CFDatum,
+  output_utxo: Output,
 ) {
-  let output = find_output_with_datum(tx.outputs, datum)
-  let token: (ByteArray, Int) = find_token_details(tx.mint, input_utxo)
-  expect token.2nd < 0
-  assets.lovelace_of(output.value) == assets.lovelace_of(
+  // let output = find_output_with_datum(tx.outputs, datum)
+  let (_, token_qty): (ByteArray, Int) = find_token_details(mint, input_utxo)
+  expect token_qty < 0
+  assets.lovelace_of(output_utxo.value) == assets.lovelace_of(
     input_utxo.output.value,
-  ) + token.2nd * 1_000_000
+  ) + token_qty * 1_000_000
   //token amount to lovelace (token.2nd * 1_000_000)
 }
 
@@ -98,26 +98,25 @@ fn find_token_details(mint: Value, input: Input) -> (ByteArray, Int) {
   trace @"Token": asset_name, amount
   (asset_name, amount)
 }
-
-fn find_output_with_datum(outputs: List<Output>, datum: CFDatum) -> Output {
-  expect Some(output) =
-    list.find(
-      outputs,
-      fn(output) {
-        when output.datum is {
-          InlineDatum(output_datum_data) -> {
-            expect output_datum: CFDatum = output_datum_data
-            and {
-              output_datum.campaign_id == datum.campaign_id,
-              output_datum.creator == datum.creator,
-            }
-          }
-          _ -> fail
-        }
-      },
-    )
-  output
-}
+// fn find_output_with_datum(outputs: List<Output>, datum: CFDatum) -> Output {
+//   expect Some(output) =
+//     list.find(
+//       outputs,
+//       fn(output) {
+//         when output.datum is {
+//           InlineDatum(output_datum_data) -> {
+//             expect output_datum: CFDatum = output_datum_data
+//             and {
+//               output_datum.campaign_id == datum.campaign_id,
+//               output_datum.creator == datum.creator,
+//             }
+//           }
+//           _ -> fail
+//         }
+//       },
+//     )
+//   output
+// }
 // DEPRECATED
 // fn complete_datum(
 //   datum: CFDatum,

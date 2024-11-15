@@ -23,16 +23,17 @@ validator crowdfunding {
           utils.get_output_with_unchanged_datum(tx, datum, input_utxo)
         trace @"TxOut": output_utxo
         and {
-          utils.output_value_condition_pledge(tx, input_utxo, output_utxo)?,
+          utils.output_value_condition_pledge(tx.mint, input_utxo, output_utxo)?,
           utils.must_be_before_deadline(tx.validity_range, datum.deadline)?,
         }
       }
 
       1 -> {
         expect Some(input_utxo) = find_input(tx.inputs, oref)
-        expect _ = utils.get_output_with_unchanged_datum(tx, datum, input_utxo)
+        let output_utxo =
+          utils.get_output_with_unchanged_datum(tx, datum, input_utxo)
 
-        utils.output_value_condition_cancel(tx, input_utxo, datum)?
+        utils.output_value_condition_cancel(tx.mint, input_utxo, output_utxo)?
       }
 
       2 -> and {
