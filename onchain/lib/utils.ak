@@ -1,40 +1,43 @@
-use aiken/collection/dict.{Dict}
+use aiken/collection/dict
+//.{Dict}
 use aiken/collection/list
-use aiken/crypto.{DataHash}
+// use aiken/crypto.{DataHash}
 use aiken/interval.{Finite}
 use cardano/address.{Address, Script}
 use cardano/assets.{Value}
 use cardano/transaction.{
-  DatumHash, InlineDatum, Input, NoDatum, Output, OutputReference, Transaction,
-  ValidityRange, find_input,
+  InlineDatum, Input, Output, OutputReference, Transaction, ValidityRange,
+  find_input,
 }
 use types.{CFDatum}
 
-pub fn datum_must_not_change(
+pub fn get_output_with_unchanged_datum(
   tx: Transaction,
   datum: CFDatum,
   input_utxo: Input,
-) -> Bool {
-  trace @"tx.Datums": tx.datums
-  trace @"Datum": datum
-  let pair_datum: (DataHash, Data) = complete_datum(datum, tx.datums)
-  must_have_same_datum_and_address(
-    pair_datum,
-    tx.outputs,
-    input_utxo.output.address,
-  )
+) -> Output {
+  // ) -> Bool {
+  expect Script(hash) = input_utxo.output.address.payment_credential
+  expect [output_utxo] = tx.outputs |> transaction.find_script_outputs(hash)
+  expect InlineDatum(output_datum) = output_utxo.datum
+  expect cf_datum: CFDatum = output_datum
+  expect cf_datum == datum
+
+  output_utxo
 }
 
 pub fn output_value_condition_pledge(
   tx: Transaction,
   input_utxo: Input,
-  datum: CFDatum,
+  output_utxo: Output,
 ) {
-  let output = find_output_with_datum(tx.outputs, datum)
-  let token: (ByteArray, Int) = find_token_details(tx.mint, input_utxo)
-  assets.lovelace_of(output.value) == assets.lovelace_of(
+  //   datum: CFDatum,
+  //   let output = find_output_with_datum(tx.outputs, datum)
+  let (_, token_qty): (ByteArray, Int) = find_token_details(tx.mint, input_utxo)
+  trace @"TokenQty": token_qty
+  (assets.lovelace_of(output_utxo.value) == assets.lovelace_of(
     input_utxo.output.value,
-  ) + token.2nd * 1_000_000
+  ) + token_qty * 1_000_000)?
 }
 
 pub fn output_value_condition_cancel(
@@ -53,8 +56,8 @@ pub fn output_value_condition_cancel(
 
 pub fn must_be_before_deadline(range: ValidityRange, deadline: Int) -> Bool {
   when range.upper_bound.bound_type is {
-    Finite(time) -> time <= deadline
-    _ -> fail
+    Finite(time) -> (time <= deadline)?
+    _ -> fail @"upper_bound NOT Set!"
   }
 }
 
@@ -87,10 +90,12 @@ pub fn datum_updated(outputs: List<Output>, datum: CFDatum) {
 
 fn find_token_details(mint: Value, input: Input) -> (ByteArray, Int) {
   expect Script(policy_id) = input.output.address.payment_credential
+  trace @"PolicyID": policy_id
   expect [Pair(asset_name, amount)] =
     mint
       |> assets.tokens(policy_id)
       |> dict.to_pairs()
+  trace @"Token": asset_name, amount
   (asset_name, amount)
 }
 
@@ -113,38 +118,37 @@ fn find_output_with_datum(outputs: List<Output>, datum: CFDatum) -> Output {
     )
   output
 }
+// DEPRECATED
+// fn complete_datum(
+//   datum: CFDatum,
+//   datums: Dict<DataHash, Data>,
+// ) -> (DataHash, Data) {
+//   expect Some(data_hash) = dict.find(datums, datum)
+//   let data_hash: DataHash = data_hash
+//   let data: Data = datum
+//   (data_hash, data)
+// }
 
-fn complete_datum(
-  datum: CFDatum,
-  datums: Dict<DataHash, Data>,
-) -> (DataHash, Data) {
-  expect Some(data_hash) = dict.find(datums, datum)
+// DEPRECATED
+// fn must_have_same_datum_and_address(
+//   datum: (DataHash, Data),
+//   outputs: List<Output>,
+//   address: Address,
+// ) -> Bool {
+//   let counter =
+//     list.count(
+//       outputs,
+//       fn(output) -> Bool {
+//         output.address == address && when output.datum is {
+//           NoDatum -> False
+//           DatumHash(datum_hash) -> datum_hash == datum.1st
+//           InlineDatum(datum_data) -> datum_data == datum.2nd
+//         }
+//       },
+//     )
+//   counter == 1
+// }
 
-  let data_hash: DataHash = data_hash
-  let data: Data = datum
-
-  (data_hash, data)
-}
-
-fn must_have_same_datum_and_address(
-  datum: (DataHash, Data),
-  outputs: List<Output>,
-  address: Address,
-) -> Bool {
-  let counter =
-    list.count(
-      outputs,
-      fn(output) -> Bool {
-        output.address == address && when output.datum is {
-          NoDatum -> False
-          DatumHash(datum_hash) -> datum_hash == datum.1st
-          InlineDatum(datum_data) -> datum_data == datum.2nd
-        }
-      },
-    )
-
-  counter == 1
-}
 // fn utxo_count_1(inputs: List<Input>, datum: CFDatum) {
 //   let counter =
 //     list.count(

@@ -19,20 +19,22 @@ validator crowdfunding {
     when redeemer is {
       0 -> {
         expect Some(input_utxo) = find_input(tx.inputs, oref)
+        let output_utxo =
+          utils.get_output_with_unchanged_datum(tx, datum, input_utxo)
+        trace @"TxOut": output_utxo
         and {
-          utils.datum_must_not_change(tx, datum, input_utxo)?,
-          utils.output_value_condition_pledge(tx, input_utxo, datum)?,
+          utils.output_value_condition_pledge(tx, input_utxo, output_utxo)?,
           utils.must_be_before_deadline(tx.validity_range, datum.deadline)?,
         }
       }
+
       1 -> {
         expect Some(input_utxo) = find_input(tx.inputs, oref)
+        expect _ = utils.get_output_with_unchanged_datum(tx, datum, input_utxo)
 
-        and {
-          utils.datum_must_not_change(tx, datum, input_utxo),
-          utils.output_value_condition_cancel(tx, input_utxo, datum),
-        }
+        utils.output_value_condition_cancel(tx, input_utxo, datum)?
       }
+
       2 -> and {
           list.has(tx.extra_signatories, datum.creator),
           or {
@@ -45,6 +47,7 @@ validator crowdfunding {
           list.has(tx.extra_signatories, datum.creator),
           utils.datum_updated(tx.outputs, datum),
         }
+
       _ -> fail
     }
   }
@@ -55,22 +58,28 @@ validator crowdfunding {
       mint
         |> assets.tokens(policy_id)
         |> dict.to_pairs()
+    trace @"Token": asset_name, amount
     expect [ref_token_utxo] = find_script_outputs(outputs, policy_id)
+    trace @"Output": ref_token_utxo
     when redeemer is {
-      0 -> and {
-          minter.check_mint_amount(inputs, ref_token_utxo, amount),
-          minter.check_tokenname(inputs, asset_name),
-        }
+      //   0 -> and {
+      //       minter.check_mint_amount(inputs, ref_token_utxo, amount),
+      //       minter.check_tokenname(inputs, asset_name),
+      //     }
+      0 -> {
+        trace @"TODO: What is this checking for?"
+        True
+      }
       1 -> and {
           minter.check_burn_amount(inputs, ref_token_utxo, amount),
           minter.check_tokenname(inputs, asset_name),
         }
-      _ -> fail
+      _ -> fail @"Invalid redeemer action!"
     }
   }
 
   else(_) {
-    fail
+    fail @"Unsupported ScriptPurpose"
     // uxto clutter remove (remove the utxo that has no datum no value but are ) cond^ to check incorrect datum or no Datum
   }
 }
