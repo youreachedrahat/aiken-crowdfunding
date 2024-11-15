@@ -1,6 +1,6 @@
 import { Data, Emulator, EmulatorAccount, LucidEvolution, paymentCredentialOf, validatorToAddress } from "@lucid-evolution/lucid";
-import { CFDatum } from "./types";
-import { spendingValidator } from "./validators";
+import { CFDatum } from "../types";
+import { spendingValidator } from "../validators";
 
 export async function createCampaign(account: EmulatorAccount, datum: CFDatum, lucid: LucidEvolution, emulator: Emulator) {
   const contractAddress = validatorToAddress(lucid.config().network, spendingValidator);
@@ -16,7 +16,6 @@ export async function createCampaign(account: EmulatorAccount, datum: CFDatum, l
   const txHash = await signedTx.submit();
 
   emulator.awaitTx(txHash);
-  const allUTxOs = await lucid.utxosAt(contractAddress);
   console.log("txHash#: ", txHash)
-  return allUTxOs;
+  return txHash;
 }

@@ -1,6 +1,6 @@
 import { Data, EmulatorAccount, fromText, LucidEvolution, mintingPolicyToId, PolicyId, toUnit, Unit, UTxO, validatorToAddress } from "@lucid-evolution/lucid";
-import { CFDatum } from "./types";
-import { mintingPolicy, spendingValidator } from "./validators";
+import { CFDatum } from "../types";
+import { mintingPolicy, spendingValidator } from "../validators";
 
 export async function cancelPledge(account: EmulatorAccount, datum: CFDatum, lucid: LucidEvolution) {
 
@@ -10,6 +10,8 @@ export async function cancelPledge(account: EmulatorAccount, datum: CFDatum, luc
     const token: Unit = toUnit(policyId, datum.campaign_id);
 
     const campaignUTxO: UTxO[] = await lucid.utxosAt(contractAddress)
+    const lovelaceToSend = campaignUTxO[0].assets.lovelace - 50_000_000n
+
     const redeemer = Data.to(1n);
     const tx = await lucid
         .newTx()
@@ -17,11 +19,13 @@ export async function cancelPledge(account: EmulatorAccount, datum: CFDatum, luc
         .attach.MintingPolicy(mintingPolicy)
         .collectFrom(campaignUTxO, redeemer)
         .attach.SpendingValidator(spendingValidator)
-        .pay.ToContract(contractAddress, { kind: "inline", value: Data.to(datum, CFDatum) }, { lovelace: 5_000_000n })
+        .pay.ToContract(contractAddress, { kind: "inline", value: Data.to(datum, CFDatum) }, { lovelace: lovelaceToSend })
         .validTo(Date.now() + 777539_000 - 24 * 3600_000)
         .complete();
 
     const signed = await tx.sign.withWallet().complete();
     const txHash = await signed.submit();
     console.log("txHash#", txHash)
+
+    return txHash
 }

@@ -1,8 +1,8 @@
 import { Emulator, generateEmulatorAccount, Lucid, Parameters, paymentCredentialOf } from "@lucid-evolution/lucid";
-import { createCampaign } from "./createCampaign";
-import { pledgeCampaign } from "./pledgeCampaign";
+import { createCampaign, pledgeCampaign, cancelPledge } from "./campaignFunctions";
+// import {  } from "./campaignFunctions/pledgeCampaign";
+// import {  } from "./campaignFunctions/cancelPledge";
 import { CFDatum } from "./types";
-import { cancelPledge } from "./cancelPledge";
 
 export const creator = generateEmulatorAccount({ lovelace: 12_000_000_000n });
 export const alice = generateEmulatorAccount({ lovelace: 12_000_000_000n });
@@ -19,28 +19,22 @@ const datum: CFDatum = {
   deadline: BigInt(Date.now() + 777539000),
 };
 export async function startContractExe() {
+  
   console.clear();
   console.log("-------------------------Start Emulation-------------------------");
-
   const lucid = await Lucid(emulator, "Custom");
-
   emulator.awaitBlock(2);
 
-  console.log("-------------------------Campaign Creation-------------------------");
-  const campaignUTxO = await createCampaign(creator, datum, lucid, emulator);
-  emulator.awaitBlock(2);
+  console.log("\n-------------------------Campaign Creation-------------------------");
+  emulator.awaitTx(await createCampaign(creator, datum, lucid, emulator))
 
-  console.log("-------------------------Campaign Pledge-------------------------");
-  await pledgeCampaign(alice, datum, campaignUTxO, lucid, emulator);
-  emulator.awaitBlock(2);
+  console.log("\n-------------------------Campaign Pledge-------------------------");
+  emulator.awaitTx(await pledgeCampaign(alice, datum, lucid, emulator))
+  emulator.awaitTx(await pledgeCampaign(bob, datum, lucid, emulator))
+  emulator.awaitTx(await pledgeCampaign(charlie, datum, lucid, emulator))
 
-  console.log("-------------------------Cancel Pledge-------------------------");
-  await cancelPledge(alice, datum, lucid)
-  emulator.awaitBlock(2);
-
-
-  console.log(lucid.utxosAt(alice.address))
-
+  console.log("\n-------------------------Cancel Pledge-------------------------");
+  emulator.awaitTx(await cancelPledge(alice, datum, lucid))
 
 }
 

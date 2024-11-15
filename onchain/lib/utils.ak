@@ -1,7 +1,5 @@
 use aiken/collection/dict
-//.{Dict}
 use aiken/collection/list
-// use aiken/crypto.{DataHash}
 use aiken/interval.{Finite}
 use cardano/address.{Address, Script}
 use cardano/assets.{Value}
@@ -30,8 +28,6 @@ pub fn output_value_condition_pledge(
   input_utxo: Input,
   output_utxo: Output,
 ) {
-  //   datum: CFDatum,
-  //   let output = find_output_with_datum(tx.outputs, datum)
   let (_, token_qty): (ByteArray, Int) = find_token_details(mint, input_utxo)
   trace @"TokenQty": token_qty
   (assets.lovelace_of(output_utxo.value) == assets.lovelace_of(
@@ -44,13 +40,11 @@ pub fn output_value_condition_cancel(
   input_utxo: Input,
   output_utxo: Output,
 ) {
-  // let output = find_output_with_datum(tx.outputs, datum)
   let (_, token_qty): (ByteArray, Int) = find_token_details(mint, input_utxo)
   expect token_qty < 0
   assets.lovelace_of(output_utxo.value) == assets.lovelace_of(
     input_utxo.output.value,
   ) + token_qty * 1_000_000
-  //token amount to lovelace (token.2nd * 1_000_000)
 }
 
 pub fn must_be_before_deadline(range: ValidityRange, deadline: Int) -> Bool {
