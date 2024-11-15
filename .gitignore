@@ -8,4 +8,5 @@ onchain/docs/
 onchain/plutus.json
 
 
-offchain/compiled/
+offchain/compiled/*
+node_modules/

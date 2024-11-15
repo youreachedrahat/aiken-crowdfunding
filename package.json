@@ -1,0 +1,19 @@
+{
+  "name": "deno-lucid-emulator",
+  "version": "1.0.0",
+  "description": "Lucid Emulator using Deno ",
+  "main": "index.js",
+  "scripts": {
+    "test": "deno run -A --unstable-sloppy-imports ./offchain/src/index.ts",
+    "aiken": "cd onchain && aiken build -t verbose && aiken blueprint convert -v crowdfunding.crowdfunding.spend > ../offchain/compiled/spend.json && aiken blueprint convert -v crowdfunding.crowdfunding.mint > ../offchain/compiled/mint.json"
+  
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "typescript": "5.6.3"
+  },
+  "dependencies": {
+    "@lucid-evolution/lucid": "^0.4.2"
+  }
+}
