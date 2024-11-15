@@ -32,7 +32,6 @@ validator crowdfunding {
         expect Some(input_utxo) = find_input(tx.inputs, oref)
         let output_utxo =
           utils.get_output_with_unchanged_datum(tx, datum, input_utxo)
-
         utils.output_value_condition_cancel(tx.mint, input_utxo, output_utxo)?
       }
 
@@ -63,17 +62,13 @@ validator crowdfunding {
     expect [ref_token_utxo] = find_script_outputs(outputs, policy_id)
     trace @"Output": ref_token_utxo
     when redeemer is {
-      //   0 -> and {
-      //       minter.check_mint_amount(inputs, ref_token_utxo, amount),
-      //       minter.check_tokenname(inputs, asset_name),
-      //     }
-      0 -> {
-        trace @"TODO: What is this checking for?"
-        True
-      }
+      0 -> and {
+          minter.check_mint_amount(inputs, ref_token_utxo, amount)?,
+          minter.check_tokenname(inputs, asset_name)?,
+        }
       1 -> and {
-          minter.check_burn_amount(inputs, ref_token_utxo, amount),
-          minter.check_tokenname(inputs, asset_name),
+          minter.check_burn_amount(inputs, ref_token_utxo, amount)?,
+          minter.check_tokenname(inputs, asset_name)?,
         }
       _ -> fail @"Invalid redeemer action!"
     }

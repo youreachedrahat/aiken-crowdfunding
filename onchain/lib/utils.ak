@@ -16,7 +16,6 @@ pub fn get_output_with_unchanged_datum(
   datum: CFDatum,
   input_utxo: Input,
 ) -> Output {
-  // ) -> Bool {
   expect Script(hash) = input_utxo.output.address.payment_credential
   expect [output_utxo] = tx.outputs |> transaction.find_script_outputs(hash)
   expect InlineDatum(output_datum) = output_utxo.datum
