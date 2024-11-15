@@ -2,16 +2,10 @@ import { Data, Emulator, EmulatorAccount, LucidEvolution, paymentCredentialOf, v
 import { CFDatum } from "./types";
 import { spendingValidator } from "./validators";
 
-export async function createCampaign(account: EmulatorAccount, lucid: LucidEvolution, emulator: Emulator) {
+export async function createCampaign(account: EmulatorAccount, datum: CFDatum, lucid: LucidEvolution, emulator: Emulator) {
   const contractAddress = validatorToAddress(lucid.config().network, spendingValidator);
   lucid.selectWallet.fromSeed(account.seedPhrase);
-  const datum: CFDatum = {
-    campaign_id: "666f6f",
-    title: "666f6f",
-    goal: BigInt(100),
-    creator: paymentCredentialOf(account.address).hash,
-    deadline: BigInt(Date.now() + 777539000),
-  };
+  
 
   const tx = await lucid
     .newTx()
@@ -23,5 +17,6 @@ export async function createCampaign(account: EmulatorAccount, lucid: LucidEvolu
 
   emulator.awaitTx(txHash);
   const allUTxOs = await lucid.utxosAt(contractAddress);
+  console.log("txHash#: ", txHash)
   return allUTxOs;
 }
